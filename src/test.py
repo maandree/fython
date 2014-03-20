@@ -27,6 +27,7 @@ class function:
             def __init__(self, n):
                 self.co_argcount = n
         self.__code__ = code_(self.n)
+        self.overloads = []
     
     
     def __call__(self, *args):
@@ -34,7 +35,22 @@ class function:
         if len(args) < self.n:
             return function(self.f, self.n, *args)
         else:
+            for f, ts in self.overloads:
+                if all([(ts[i] is None) or isinstance(args[i], ts[i]) for i in range(self.n)]):
+                    return f(*args)
             return self.f(*args)
+    
+    
+    def overload(self, *types):
+        if not len(types) == self.n: # TODO make this unnecessary
+            raise Exception('Incompatible number of arguments')
+        def overload_(f):
+            self.overloads.append((f, types))
+            return self
+        return overload_
+    
+    
+    # TODO add guard
     
     
     @staticmethod
@@ -150,4 +166,20 @@ def f2(a, b):
 
 print((f1 & f2)(2, 2)(3))
 print(f1.combine(f2, lambda x, y : x ** y)(1, 3))
+
+@function
+def f(a):
+    return 'default'
+
+@f.overload(int)
+def f(a):
+    return 'int:%i' % a
+
+@f.overload(str)
+def f(a):
+    return 'str:%s' % a
+
+print(f(1))
+print(f('1'))
+print(f({}))
 
