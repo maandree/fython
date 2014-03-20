@@ -35,8 +35,23 @@ class function:
         if len(args) < self.n:
             return function(self.f, self.n, *args)
         else:
-            for f, ts in self.overloads:
-                if all([(ts[i] is None) or isinstance(args[i], ts[i]) for i in range(self.n)]):
+            def test(value, reqs, guards, i):
+                if ((reqs is None) or (reqs[i] is None)):
+                    if ((guards is None) or (guards[i] is None)):
+                        return True
+                    return guards[i](value)
+                req_ = True
+                if isinstance(reqs[i], type):
+                    req_ = isinstance(value, reqs[i])
+                else:
+                    req_ = value == reqs[i]
+                if not req_:
+                    return False
+                if ((guards is None) or (guards[i] is None)):
+                    return True
+                return guards[i](value)
+            for f, ts, gs in self.overloads:
+                if all([test(args[i], ts, gs, i) for i in range(self.n)]):
                     return f(*args)
             return self.f(*args)
     
@@ -44,13 +59,29 @@ class function:
     def overload(self, *types):
         if not len(types) == self.n: # TODO make this unnecessary
             raise Exception('Incompatible number of arguments')
-        def overload_(f):
-            self.overloads.append((f, types))
+        class overload_:
+            def __init__(self, that):
+                self.that = that
+            def __call__(self, f):
+                self.that.overloads.append((f, types, None))
+                return self.that
+            def guard(self, *testers):
+                if not len(testers) == self.that.n: # TODO make this unnecessary
+                    raise Exception('Incompatible number of arguments')
+                def guard_(f):
+                    self.that.overloads.append((f, types, testers))
+                    return self.that
+                return guard_
+        return overload_(self)
+    
+    
+    def guard(self, *testers):
+        if not len(testers) == self.n: # TODO make this unnecessary
+            raise Exception('Incompatible number of arguments')
+        def guard_(f):
+            self.overloads.append((f, None, testers))
             return self
-        return overload_
-    
-    
-    # TODO add guard
+        return guard_
     
     
     @staticmethod
@@ -169,7 +200,20 @@ print(f1.combine(f2, lambda x, y : x ** y)(1, 3))
 
 @function
 def f(a):
-    return 'default'
+    return 'default:%s' % repr(a)
+
+o = f.overload(int)
+@o.guard(lambda x : x == 0)
+def f(_a):
+    return 'zero'
+
+@f.overload(1)
+def f(_a):
+    return 'one'
+
+@f.guard(lambda x : x == 2)
+def f(_a):
+    return 'two'
 
 @f.overload(int)
 def f(a):
@@ -179,7 +223,10 @@ def f(a):
 def f(a):
     return 'str:%s' % a
 
+print(f(0))
 print(f(1))
+print(f(2))
+print(f(3))
 print(f('1'))
 print(f({}))
 
