@@ -229,6 +229,9 @@ def f(a):
 
 o = f.overload(int)
 @o.guard(lambda x : x == 0)
+# TODO it should be possible to add more guards here,
+# that extend this guard with additional arguments,
+# not alternative conditions
 def f(_a):
     return 'zero'
 
