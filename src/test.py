@@ -75,8 +75,8 @@ class function:
             def __call__(self, f):
                 self.that.overloads.append((f, types, None))
                 return self.that
-            def guard(self, *testers):
-                if not len(testers) == self.that.n: # TODO make this unnecessary
+            def guard(self, *testers): # TODO see guard outside overload
+                if not len(testers) == self.that.n:
                     raise Exception('Incompatible number of arguments')
                 def guard_(f):
                     self.that.overloads.append((f, types, testers))
@@ -86,7 +86,12 @@ class function:
     
     
     def guard(self, *testers):
-        if not len(testers) == self.n: # TODO make this unnecessary
+        # TODO make this unnecessary
+        # TODO allow multiparameter testers, for example
+        #      lambda a, b : a == 0 and b == 1
+        #      instead of
+        #      lambda a : a == 0, lambda b : b == 1
+        if not len(testers) == self.n:
             raise Exception('Incompatible number of arguments')
         def guard_(f):
             self.overloads.append((f, None, testers))
