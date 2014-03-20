@@ -28,12 +28,16 @@ class function:
                 self.co_argcount = n
         self.__code__ = code_(self.n)
         self.overloads = []
+        self.chain = []
     
     
     def __call__(self, *args):
         args = self.args + args
         if len(args) < self.n:
-            return function(self.f, self.n, *args)
+            f = function(self.f, self.n, *args)
+            f.overloads = self.overloads[:]
+            f.chain = self.chain[:]
+            return f
         else:
             def test(value, reqs, guards, i):
                 if ((reqs is None) or (reqs[i] is None)):
@@ -50,10 +54,16 @@ class function:
                 if ((guards is None) or (guards[i] is None)):
                     return True
                 return guards[i](value)
+            rc = None
             for f, ts, gs in self.overloads:
                 if all([test(args[i], ts, gs, i) for i in range(self.n)]):
-                    return f(*args)
-            return self.f(*args)
+                    rc = f(*args)
+                    break
+            else:
+                rc = self.f(*args)
+            if len(self.chain) == 0:
+                return rc
+            return tuple([rc] + [f(*args) for f in self.chain])
     
     
     def overload(self, *types):
@@ -183,6 +193,16 @@ class function:
         return rc
     
     
+    def __or__(self, f):
+        rc = function(self.f, self.n, *(self.args))
+        rc.overloads = self.overloads[:]
+        rc.chain = self.chain[:]
+        rc.chain.append(f)
+        return rc
+    
+    # TODO add __ror__
+    
+    
     def combine(self, f, op):
         return function.__combine(lambda x, y : op(x, y), self.f, f)
 
@@ -229,4 +249,19 @@ print(f(2))
 print(f(3))
 print(f('1'))
 print(f({}))
+
+@function
+def f1(a):
+    return a ** 2
+
+@function
+def f2(a):
+    return a ** 3
+
+@function
+def f3(a):
+    return a ** 4
+
+print((f1 | f2 | f3)(2))
+
 
