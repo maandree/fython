@@ -212,18 +212,16 @@ class function:
         return function.__combine(lambda x, y : op(x, y), self.f, f)
 
 
-@function
-def f1(a, b):
-    return a + b
+F = function
 
-@function
-def f2(a, b):
-    return a * b
+
+f1 = F(lambda a, b : a + b)
+f2 = F(lambda a, b : a * b)
 
 print((f1 & f2)(2, 2)(3))
 print(f1.combine(f2, lambda x, y : x ** y)(1, 3))
 
-@function
+@F
 def f(a):
     return 'default:%s' % repr(a)
 
@@ -258,15 +256,15 @@ print(f(3))
 print(f('1'))
 print(f({}))
 
-@function
+@F
 def f1(a):
     return a ** 2
 
-@function
+@F
 def f2(a):
     return a ** 3
 
-@function
+@F
 def f3(a):
     return a ** 4
 
